@@ -6,6 +6,7 @@ import { Alert, Share, StyleSheet, ToastAndroid, View } from "react-native";
 
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
+import { destroy } from "@/util/endpoint-service";
 import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
@@ -22,7 +23,7 @@ function UploadScreen() {
   function onPressDelete() {
     Alert.alert(
       "Delete file",
-      `Are you sure you want to delete "${file?.file.name}"?`,
+      `Are you sure you want to delete "${file?.name}"?`,
       [
         {
           text: "Confirm",
@@ -40,28 +41,14 @@ function UploadScreen() {
   async function deletFile() {
     if (!file) return;
 
-    const body = new FormData();
-    body.append("token", `${file.token}`);
-    body.append("delete", "");
-
-    let response = await fetch(`${file.url}`, {
-      headers: {
-        "User-Agent": "x0x0/0.0.1 (Android;RN Expo)",
-      },
-      method: "POST",
-      body: body,
-    });
-    let responseData = await response.text();
-
-    if (!response.ok) {
-      console.error(`Error ${response.status}: ${responseData}`);
-      Alert.alert("Delete file", responseData);
-      return;
+    try {
+      await destroy(file.url, file.token);
+      await AsyncStorage.removeItem(file.id);
+      ToastAndroid.show(`${file.name} deleted.`, ToastAndroid.SHORT);
+      router.back();
+    } catch (e: any) {
+      Alert.alert("Delete file error", e);
     }
-
-    await AsyncStorage.removeItem(file.id);
-    ToastAndroid.show(`${file.file.name} deleted.`, ToastAndroid.SHORT);
-    router.back();
   }
 
   async function shareFile() {
@@ -79,16 +66,15 @@ function UploadScreen() {
   useEffect(() => {
     (async () => {
       const item = await AsyncStorage.getItem(id);
-
       if (item) {
         const retrievedFile: File = JSON.parse(item);
-        const info = await FileSystem.getInfoAsync(retrievedFile.file.uri);
+        const info = await FileSystem.getInfoAsync(retrievedFile.uri);
 
         if (!info.exists) {
           try {
             await FileSystem.downloadAsync(
               new URL(`${retrievedFile.url}`).href,
-              retrievedFile.file.uri
+              retrievedFile.uri
             );
           } catch (e) {
             console.error(e);
@@ -110,7 +96,7 @@ function UploadScreen() {
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      title: file?.file.name,
+      title: file?.name,
     });
   }, [file]);
 
@@ -118,16 +104,16 @@ function UploadScreen() {
     <View style={styles.container}>
       {/* PREVIEW */}
       <View style={styles.preview}>
-        {file && file.file.mimeType?.includes("image") ? (
+        {file && file.mimeType?.includes("image") ? (
           <Image
-            source={file.file.uri}
+            source={file.uri}
             contentFit="contain"
             style={styles.image}
             onError={(event) => Alert.alert("Image", event.error)}
           />
-        ) : file?.file.mimeType?.includes("video") ? (
+        ) : file?.mimeType?.includes("video") ? (
           <FontAwesome5 name="file-video" size={64} color="white" />
-        ) : file?.file.mimeType?.includes("pdf") ? (
+        ) : file?.mimeType?.includes("pdf") ? (
           <FontAwesome5 name="file-pdf" size={64} color="white" />
         ) : (
           <FontAwesome5 name="file" size={64} color="white" />
@@ -138,9 +124,7 @@ function UploadScreen() {
       <View style={styles.properties}>
         <View style={styles.propertyRow}>
           <ThemedText style={styles.propertyLabel}>File name</ThemedText>
-          <ThemedText style={styles.propertyValue}>
-            {file?.file.name}
-          </ThemedText>
+          <ThemedText style={styles.propertyValue}>{file?.name}</ThemedText>
         </View>
         <View style={styles.propertyRow}>
           <ThemedText style={styles.propertyLabel}>URL</ThemedText>
@@ -157,14 +141,12 @@ function UploadScreen() {
         </View>
         <View style={styles.propertyRow}>
           <ThemedText style={styles.propertyLabel}>Type</ThemedText>
-          <ThemedText style={styles.propertyValue}>
-            {file?.file.mimeType}
-          </ThemedText>
+          <ThemedText style={styles.propertyValue}>{file?.mimeType}</ThemedText>
         </View>
         <View style={styles.propertyRow}>
           <ThemedText style={styles.propertyLabel}>Size</ThemedText>
           <ThemedText style={styles.propertyValue}>
-            {file?.file.size && prettyBytes(file?.file.size)}
+            {file?.size && prettyBytes(file?.size)}
           </ThemedText>
         </View>
         <View style={styles.propertyRow}>
@@ -199,7 +181,7 @@ function UploadScreen() {
         </View>
         <View style={styles.propertyRow}>
           <ThemedText style={styles.propertyLabel}>URI</ThemedText>
-          <ThemedText style={styles.propertyValue}>{file?.file.uri}</ThemedText>
+          <ThemedText style={styles.propertyValue}>{file?.uri}</ThemedText>
         </View>
       </View>
 

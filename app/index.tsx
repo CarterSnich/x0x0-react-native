@@ -5,6 +5,7 @@ import ThemedBase from "@/components/themed-base";
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { upload } from "@/util/endpoint-service";
 import { File } from "@/util/file";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -41,39 +42,28 @@ function IndexScreen() {
   }
 
   const uploadFile = async () => {
-    if (!pickedFile) {
+    if (!pickedFile || !pickedFile.file) {
       Alert.alert("Upload error", "No file selected. Something went wrong.");
       return;
     }
     setIsUploading(true);
 
     const formData = new FormData();
-    const file: any = {
+    const formFile: any = {
       uri: pickedFile.uri,
       type: pickedFile.mimeType,
       name: pickedFile.name,
     };
 
-    formData.append("file", file);
+    formData.append("file", formFile);
 
     try {
-      const response = await fetch("https://0x0.st", {
-        headers: {
-          "User-Agent": "x0x0/0.0.1 (Android;RN Expo)",
-          "Content-Type": "multipart/form-data",
-        },
-        method: "POST",
-        body: formData,
-      });
+      const fileName = pickedFile.name;
+      const fileType = pickedFile.mimeType ?? "*/*";
+      const fileSize = pickedFile.size ?? 0;
+      const fileURI = pickedFile.uri;
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`Upload failed: ${response.status} - ${errorText}`);
-      }
-
-      const token = response.headers.get("x-token");
-      const expires = response.headers.get("x-expires");
-      const url = await response.text();
+      const { url, token, expires } = await upload(fileName, fileType, fileURI);
       const id = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.MD5,
         pickedFile.name
@@ -81,10 +71,13 @@ function IndexScreen() {
 
       const file: File = {
         id: id,
-        file: pickedFile,
-        url: url.trim(),
-        token: token?.toString(),
-        expires: expires?.toString(),
+        name: fileName,
+        size: fileSize,
+        mimeType: fileType,
+        uri: fileURI,
+        url: url,
+        token: token,
+        expires: expires,
       };
 
       await AsyncStorage.setItem(id, JSON.stringify(file));
