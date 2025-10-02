@@ -42,7 +42,7 @@ function IndexScreen() {
   }
 
   const uploadFile = async () => {
-    if (!pickedFile || !pickedFile.file) {
+    if (!pickedFile) {
       Alert.alert("Upload error", "No file selected. Something went wrong.");
       return;
     }

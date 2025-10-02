@@ -26,7 +26,7 @@ function ThemedFlatList({ data, onItemPress }: Props) {
           android_ripple={{ color: rippleColor }}
           onPress={() => onItemPress?.(item, index)}
         >
-          <ThemedText>{item.file.name}</ThemedText>
+          <ThemedText>{item.name}</ThemedText>
         </Pressable>
       )}
       ItemSeparatorComponent={() => (
