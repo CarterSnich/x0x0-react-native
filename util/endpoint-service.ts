@@ -20,8 +20,12 @@ async function upload(name: string, type: string, uri: string) {
     throw `Upload failed: ${response.status} - ${responseText}`;
   }
 
-  const token = response.headers.get("x-token") ?? "";
+  const token = response.headers.get("x-token");
   const expires = response.headers.get("x-expires") ?? "";
+
+  if (token === null) {
+    throw `File already exists remotely: ${responseText}`;
+  }
 
   return {
     url: responseText,
