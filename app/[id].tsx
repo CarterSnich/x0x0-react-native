@@ -2,7 +2,7 @@ import { File } from "@/util/file";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useEffect, useLayoutEffect, useState } from "react";
-import { Alert, StyleSheet, ToastAndroid, View } from "react-native";
+import { Alert, Share, StyleSheet, ToastAndroid, View } from "react-native";
 
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
@@ -10,7 +10,6 @@ import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Clipboard from "expo-clipboard";
 import * as FileSystem from "expo-file-system";
-import * as Sharing from "expo-sharing";
 import prettyBytes from "pretty-bytes";
 
 function UploadScreen() {
@@ -65,12 +64,24 @@ function UploadScreen() {
     router.back();
   }
 
+  async function shareFile() {
+    try {
+      await Share.share({
+        message: `${file?.url}`,
+        title: "Share URL",
+      });
+    } catch (e) {
+      console.error(e);
+      Alert.alert("Sharing failed", `${e}`);
+    }
+  }
+
   useEffect(() => {
     (async () => {
-      const storedFile = await AsyncStorage.getItem(id);
+      const item = await AsyncStorage.getItem(id);
 
-      if (storedFile) {
-        const retrievedFile: File = JSON.parse(storedFile);
+      if (item) {
+        const retrievedFile: File = JSON.parse(item);
         const info = await FileSystem.getInfoAsync(retrievedFile.file.uri);
 
         if (!info.exists) {
@@ -197,17 +208,8 @@ function UploadScreen() {
         <ThemedButton style={styles.button} onPress={onPressDelete}>
           Delete
         </ThemedButton>
-        <ThemedButton
-          style={styles.button}
-          onPress={async () => {
-            if ((await Sharing.isAvailableAsync()) && file) {
-              await Sharing.shareAsync(file?.file.uri);
-            } else {
-              alert("Sharing not available");
-            }
-          }}
-        >
-          Open
+        <ThemedButton style={styles.button} onPress={shareFile}>
+          Share
         </ThemedButton>
       </View>
     </View>
