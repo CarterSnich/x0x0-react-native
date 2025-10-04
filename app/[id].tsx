@@ -6,7 +6,7 @@ import { Alert, Share, StyleSheet, ToastAndroid, View } from "react-native";
 
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
-import { useModal } from "@/contexts/modal-context";
+import { useAlert } from "@/contexts/alert-context";
 import { destroy } from "@/util/endpoint-service";
 import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -15,7 +15,7 @@ import * as FileSystem from "expo-file-system";
 import prettyBytes from "pretty-bytes";
 
 function UploadScreen() {
-  const { openModal, closeModal } = useModal();
+  const { alertShow, alertClose } = useAlert();
 
   const router = useRouter();
   const navigation = useNavigation();
@@ -24,23 +24,21 @@ function UploadScreen() {
   const [file, setFile] = useState<File>();
 
   function onPressDelete() {
-    openModal({
+    alertShow({
       title: "Delete file",
-      content: (
-        <ThemedText>Are you sure you want to delete "{file?.name}"?</ThemedText>
-      ),
+      message: `Are you sure you want to delete "${file?.name}"?`,
       buttons: [
         {
           label: "Confirm",
           action: async () => {
-            closeModal();
+            alertClose();
             await deletFile();
             ToastAndroid.show(`${file?.name} deleted.`, ToastAndroid.SHORT);
           },
         },
         {
           label: "Cancel",
-          action: closeModal,
+          action: alertClose,
         },
       ],
     });
@@ -67,9 +65,9 @@ function UploadScreen() {
       });
     } catch (e: any) {
       console.error("Sharing failed: ", e);
-      openModal({
+      alertShow({
         title: "Sharing failed",
-        content: <ThemedText>{e}</ThemedText>,
+        message: e,
       });
     }
   }
@@ -90,9 +88,9 @@ function UploadScreen() {
           } catch (e) {
             console.error(e);
 
-            openModal({
+            alertShow({
               title: "File retrieve error",
-              content: <ThemedText>Failed to download from remote.</ThemedText>,
+              message: "Failed to download from remote.",
             });
             router.back();
           }
@@ -100,9 +98,9 @@ function UploadScreen() {
 
         setFile(retrievedFile);
       } else {
-        openModal({
+        alertShow({
           title: "View file error",
-          content: <ThemedText>File doesn't exist.</ThemedText>,
+          message: "File doesn't exist.",
         });
         router.back();
       }

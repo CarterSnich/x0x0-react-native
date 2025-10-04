@@ -9,7 +9,7 @@ import "react-native-reanimated";
 
 import { applicationName } from "expo-application";
 
-import { ModalProvider } from "@/contexts/modal-context";
+import { AlertProvider } from "@/contexts/alert-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function RootLayout() {
@@ -17,7 +17,7 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <ModalProvider>
+      <AlertProvider>
         <Stack
           screenOptions={{
             animation: "slide_from_right",
@@ -31,7 +31,7 @@ export default function RootLayout() {
           />
         </Stack>
         <StatusBar style="auto" />
-      </ModalProvider>
+      </AlertProvider>
     </ThemeProvider>
   );
 }
