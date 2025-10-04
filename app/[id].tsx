@@ -6,6 +6,7 @@ import { Alert, Share, StyleSheet, ToastAndroid, View } from "react-native";
 
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
+import { useModal } from "@/contexts/modal-context";
 import { destroy } from "@/util/endpoint-service";
 import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -14,6 +15,8 @@ import * as FileSystem from "expo-file-system";
 import prettyBytes from "pretty-bytes";
 
 function UploadScreen() {
+  const { openModal, closeModal } = useModal();
+
   const router = useRouter();
   const navigation = useNavigation();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,21 +24,26 @@ function UploadScreen() {
   const [file, setFile] = useState<File>();
 
   function onPressDelete() {
-    Alert.alert(
-      "Delete file",
-      `Are you sure you want to delete "${file?.name}"?`,
-      [
+    openModal({
+      title: "Delete file",
+      content: (
+        <ThemedText>Are you sure you want to delete "{file?.name}"?</ThemedText>
+      ),
+      buttons: [
         {
-          text: "Confirm",
-          onPress: deletFile,
-          style: "destructive",
+          label: "Confirm",
+          action: async () => {
+            closeModal();
+            await deletFile();
+            ToastAndroid.show(`${file?.name} deleted.`, ToastAndroid.SHORT);
+          },
         },
         {
-          text: "Cancel",
-          isPreferred: true,
+          label: "Cancel",
+          action: closeModal,
         },
-      ]
-    );
+      ],
+    });
   }
 
   async function deletFile() {
@@ -57,9 +65,12 @@ function UploadScreen() {
         message: `${file?.url}`,
         title: "Share URL",
       });
-    } catch (e) {
-      console.error(e);
-      Alert.alert("Sharing failed", `${e}`);
+    } catch (e: any) {
+      console.error("Sharing failed: ", e);
+      openModal({
+        title: "Sharing failed",
+        content: <ThemedText>{e}</ThemedText>,
+      });
     }
   }
 
@@ -78,18 +89,22 @@ function UploadScreen() {
             );
           } catch (e) {
             console.error(e);
-            Alert.alert(
-              "File retrieve error",
-              "Failed to download from remote."
-            );
+
+            openModal({
+              title: "File retrieve error",
+              content: <ThemedText>Failed to download from remote.</ThemedText>,
+            });
             router.back();
           }
         }
 
         setFile(retrievedFile);
       } else {
+        openModal({
+          title: "View file error",
+          content: <ThemedText>File doesn't exist.</ThemedText>,
+        });
         router.back();
-        Alert.alert("View file error", "File doesn't exist.");
       }
     })();
   }, []);

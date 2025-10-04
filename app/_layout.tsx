@@ -9,6 +9,7 @@ import "react-native-reanimated";
 
 import { applicationName } from "expo-application";
 
+import { ModalProvider } from "@/contexts/modal-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function RootLayout() {
@@ -16,19 +17,21 @@ export default function RootLayout() {
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack
-        screenOptions={{
-          animation: "slide_from_right",
-        }}
-      >
-        <Stack.Screen
-          name="index"
-          options={{
-            title: applicationName ?? "",
+      <ModalProvider>
+        <Stack
+          screenOptions={{
+            animation: "slide_from_right",
           }}
-        />
-      </Stack>
-      <StatusBar style="auto" />
+        >
+          <Stack.Screen
+            name="index"
+            options={{
+              title: applicationName ?? "",
+            }}
+          />
+        </Stack>
+        <StatusBar style="auto" />
+      </ModalProvider>
     </ThemeProvider>
   );
 }

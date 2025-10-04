@@ -1,27 +1,25 @@
-import { Alert, Modal, StyleSheet, ToastAndroid, View } from "react-native";
+import { StyleSheet, ToastAndroid, View } from "react-native";
 
 import { ThemedFlatList } from "@/components/flatlist";
 import ThemedBase from "@/components/themed-base";
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { useModal } from "@/contexts/modal-context";
 import { upload } from "@/util/endpoint-service";
 import { File } from "@/util/file";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import { DocumentPickerAsset, getDocumentAsync } from "expo-document-picker";
-import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import prettyBytes from "pretty-bytes";
 import { useCallback, useState } from "react";
 
 function IndexScreen() {
-  const router = useRouter();
-  const navigation = useNavigation();
+  const { openModal, closeModal } = useModal();
 
-  const [isUploading, setIsUploading] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [pickedFile, setPickedFile] = useState<DocumentPickerAsset>();
+  const router = useRouter();
+
   const [files, setFiles] = useState<File[]>([]);
 
   async function getFiles() {
@@ -35,19 +33,16 @@ function IndexScreen() {
       });
 
       setFiles(retrievedFiles);
-    } catch (e) {
-      console.error(e);
-      Alert.alert("Loading files", "Failed to load files.");
+    } catch (e: any) {
+      console.error("Loading files failed:", e);
+      openModal({
+        title: "Loading files failed",
+        content: <ThemedText>Loading files error: {e}.</ThemedText>,
+      });
     }
   }
 
-  const uploadFile = async () => {
-    if (!pickedFile) {
-      Alert.alert("Upload error", "No file selected. Something went wrong.");
-      return;
-    }
-    setIsUploading(true);
-
+  const uploadFile = async (pickedFile: DocumentPickerAsset) => {
     const formData = new FormData();
     const formFile: any = {
       uri: pickedFile.uri,
@@ -63,6 +58,7 @@ function IndexScreen() {
       const fileSize = pickedFile.size ?? 0;
       const fileURI = pickedFile.uri;
 
+      ToastAndroid.show(`Uploading ${fileName}.`, ToastAndroid.SHORT);
       const { url, token, expires } = await upload(fileName, fileType, fileURI);
       const id = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.MD5,
@@ -82,14 +78,14 @@ function IndexScreen() {
 
       await AsyncStorage.setItem(id, JSON.stringify(file));
       setFiles([...files, file]);
+      ToastAndroid.show(`${pickedFile.name} uploaded.`, ToastAndroid.SHORT);
+    } catch (e: any) {
+      console.error("File upload error:", e);
 
-      ToastAndroid.show(`${pickedFile.name} uploaded`, ToastAndroid.SHORT);
-    } catch (error) {
-      console.error("File upload error:", error);
-      Alert.alert("File upload error", `${error}`);
-    } finally {
-      setIsUploading(false);
-      setModalVisible(false);
+      openModal({
+        title: "File upload error",
+        content: <ThemedText>File upload failed: {e}.</ThemedText>,
+      });
     }
   };
 
@@ -107,27 +103,62 @@ function IndexScreen() {
       const resultFile = result.assets[0];
 
       if (!resultFile) {
-        Alert.alert(
-          "File picker",
-          "File seems to be  corrupted or something else went wrong."
-        );
+        openModal({
+          title: "File picker",
+          content: (
+            <ThemedText>
+              File seems to be corrupted or something else went wrong.
+            </ThemedText>
+          ),
+        });
         return;
       }
 
       if (!resultFile.size) {
-        Alert.alert("File picker", "Empty file.");
+        openModal({
+          title: "File picker",
+          content: <ThemedText>Empty file.</ThemedText>,
+        });
         return;
       }
 
       if (resultFile.size > 536870912) {
-        Alert.alert("File picker", "File size must not exceed 512 MiB.");
+        openModal({
+          title: "File size",
+          content: <ThemedText>File size must not exceed 512 MiB.</ThemedText>,
+        });
         return;
       }
 
-      setPickedFile(resultFile);
-      setModalVisible(true);
-    } catch (error) {
-      console.error("Error picking document:", error);
+      openModal({
+        title: "File upload",
+        content: (
+          <View>
+            <ThemedText>File: {resultFile.name}</ThemedText>
+            <ThemedText>Size: {prettyBytes(resultFile.size)}</ThemedText>
+            <ThemedText>Type: {resultFile.mimeType}</ThemedText>
+          </View>
+        ),
+        buttons: [
+          {
+            label: "UPLOAD",
+            action: async () => {
+              closeModal();
+              uploadFile(resultFile);
+            },
+          },
+          {
+            label: "CANCEL",
+            action: closeModal,
+          },
+        ],
+      });
+    } catch (e: any) {
+      console.error("Error picking document:", e);
+      openModal({
+        title: "File picker",
+        content: <ThemedText>Error picking document: {e}.</ThemedText>,
+      });
     }
   };
 
@@ -147,32 +178,6 @@ function IndexScreen() {
       <ThemedButton style={styles.fab} onPress={onUploadButtonPress}>
         <MaterialIcons name="add" size={24} />
       </ThemedButton>
-
-      <Modal animationType="slide" visible={modalVisible} transparent>
-        <View style={styles.modalBackdrop}>
-          <ThemedView style={styles.modalDialog}>
-            <ThemedText style={styles.modalTitle}>Upload</ThemedText>
-            <View style={styles.modalBody}>
-              <ThemedText>File: {pickedFile?.name}</ThemedText>
-              <ThemedText>
-                Size: {pickedFile?.size && prettyBytes(pickedFile?.size)}
-              </ThemedText>
-              <ThemedText>Type: {pickedFile?.mimeType}</ThemedText>
-            </View>
-            <View style={styles.modalButtons}>
-              <ThemedButton
-                onPress={() => setModalVisible(false)}
-                disabled={isUploading}
-              >
-                Cancel
-              </ThemedButton>
-              <ThemedButton onPress={uploadFile} disabled={isUploading}>
-                {isUploading ? "Uploading" : "Upload"}
-              </ThemedButton>
-            </View>
-          </ThemedView>
-        </View>
-      </Modal>
     </ThemedBase>
   );
 }
