@@ -24,7 +24,7 @@ async function upload(name: string, type: string, uri: string) {
   const expires = response.headers.get("x-expires") ?? "";
 
   if (token === null) {
-    throw `File already exists remotely: ${responseText}`;
+    throw `File already exist remotely: ${responseText}`;
   }
 
   return {
