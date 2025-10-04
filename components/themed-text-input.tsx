@@ -7,15 +7,14 @@ function ThemedTextInput({ ...props }: TextInputProps) {
 
   const style: TextStyle = {
     color: textColor,
-    borderBottomColor: "white",
+    borderBottomColor: textColor,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    margin: 8,
   };
 
   return (
     <TextInput
-      {...props}
       placeholderTextColor={props.placeholderTextColor ?? placeholderColor}
+      {...props}
       style={[style, props.style]}
     />
   );

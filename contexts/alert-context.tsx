@@ -18,16 +18,16 @@ const AlertContext = createContext<ContextProp | undefined>(undefined);
 
 export const AlertProvider = ({ children }: { children: React.ReactNode }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [content, setContent] = useState<AlertContentProp>();
+  const [modalContent, setModalContent] = useState<AlertContentProp>();
 
   const alertShow = ({ ...content }: AlertContentProp) => {
-    setContent(content);
+    setModalContent(content);
     setIsVisible(true);
   };
 
   const alertClose = () => {
     setIsVisible(false);
-    setContent(undefined);
+    setModalContent(undefined);
   };
 
   const defaultActionButtons = [
@@ -41,11 +41,11 @@ export const AlertProvider = ({ children }: { children: React.ReactNode }) => {
     <AlertContext.Provider value={{ isVisible, alertShow, alertClose }}>
       {children}
       <Modal
-        title={content?.title}
+        title={modalContent?.title}
         visible={isVisible}
-        actions={content?.buttons ?? defaultActionButtons}
+        actions={modalContent?.buttons ?? defaultActionButtons}
       >
-        <ThemedText>{children}</ThemedText>
+        <ThemedText>{modalContent?.message}</ThemedText>
       </Modal>
     </AlertContext.Provider>
   );

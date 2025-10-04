@@ -1,4 +1,3 @@
-import { useRef } from "react";
 import {
   ModalProps,
   Modal as RNModal,
@@ -23,10 +22,8 @@ type Props = ModalProps & {
 };
 
 function Modal({ ...props }: Props) {
-  const ref = useRef<RNModal>(null);
-
   return (
-    <RNModal ref={ref} animationType="fade" transparent {...props}>
+    <RNModal animationType="fade" transparent {...props}>
       <View style={styles.modalBackdrop}>
         <ThemedView style={styles.modalDialog}>
           <ThemedText style={styles.modalTitle}>{props.title}</ThemedText>
