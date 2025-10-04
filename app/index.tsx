@@ -53,6 +53,8 @@ function IndexScreen() {
   }
 
   function resetFileUploadDialog() {
+    setRetention("");
+    setIsSecret(false);
     setPickedFile(undefined);
     setShowFileUploadDialog(false);
   }
