@@ -1,10 +1,22 @@
 const URL_ENDPOINT = "https://0x0.st/";
 const USER_AGENT = "x0x0/0.0.1 (Android;RN Expo)";
 
-async function upload(name: string, type: string, uri: string) {
+async function upload(
+  name: string,
+  type: string,
+  uri: string,
+  secret: boolean = false,
+  retention?: number
+) {
   const formData = new FormData();
   const formFile = { name, type, uri };
   formData.append("file", formFile as any);
+  if (secret) {
+    formData.append("secret", "");
+  }
+  if (retention !== undefined) {
+    formData.append("expires", retention.toString());
+  }
 
   const response = await fetch(URL_ENDPOINT, {
     headers: {
