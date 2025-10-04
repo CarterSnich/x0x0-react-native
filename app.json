@@ -20,10 +20,6 @@
       },
       "edgeToEdgeEnabled": true
     },
-    "web": {
-      "output": "static",
-      "favicon": "./assets/images/favicon.png"
-    },
     "plugins": [
       "expo-router",
       [
@@ -40,6 +36,13 @@
       ],
       "expo-font",
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "d29daeb4-7d54-45e5-bd69-bc5fc152fb71"
+      }
+    },
+    "owner": "cartersnich"
   }
 }
