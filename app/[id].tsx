@@ -23,6 +23,19 @@ function UploadScreen() {
 
   const [file, setFile] = useState<File>();
 
+  async function deletFile() {
+    if (!file) return;
+
+    try {
+      await destroy(file.url, file.token);
+      await AsyncStorage.removeItem(file.id);
+      ToastAndroid.show(`${file.name} deleted.`, ToastAndroid.SHORT);
+      router.back();
+    } catch (e: any) {
+      Alert.alert("Delete file error", e);
+    }
+  }
+
   function onPressDelete() {
     alertShow({
       title: "Delete file",
@@ -44,20 +57,7 @@ function UploadScreen() {
     });
   }
 
-  async function deletFile() {
-    if (!file) return;
-
-    try {
-      await destroy(file.url, file.token);
-      await AsyncStorage.removeItem(file.id);
-      ToastAndroid.show(`${file.name} deleted.`, ToastAndroid.SHORT);
-      router.back();
-    } catch (e: any) {
-      Alert.alert("Delete file error", e);
-    }
-  }
-
-  async function shareFile() {
+  async function onPressShare() {
     try {
       await Share.share({
         message: `${file?.url}`,
@@ -203,7 +203,7 @@ function UploadScreen() {
         <ThemedButton style={styles.button} onPress={onPressDelete}>
           Delete
         </ThemedButton>
-        <ThemedButton style={styles.button} onPress={shareFile}>
+        <ThemedButton style={styles.button} onPress={onPressShare}>
           Share
         </ThemedButton>
       </View>

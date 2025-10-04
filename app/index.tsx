@@ -1,10 +1,10 @@
 import { StyleSheet, ToastAndroid, View } from "react-native";
 
+import { Fab } from "@/components/fab";
 import { ThemedFlatList } from "@/components/flatlist";
 import { LabeledSwitch } from "@/components/labeled-switch";
 import { Modal } from "@/components/modal";
 import ThemedBase from "@/components/themed-base";
-import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedTextInput } from "@/components/themed-text-input";
 import { useAlert } from "@/contexts/alert-context";
@@ -59,7 +59,7 @@ function IndexScreen() {
     setShowFileUploadDialog(false);
   }
 
-  const uploadFile = async () => {
+  async function uploadFile() {
     if (!pickedFile) {
       alertShow({
         title: "File picker",
@@ -110,9 +110,9 @@ function IndexScreen() {
     } finally {
       resetFileUploadDialog();
     }
-  };
+  }
 
-  const onUploadButtonPress = async () => {
+  async function onUploadButtonPress() {
     try {
       let result = await getDocumentAsync({
         copyToCacheDirectory: true,
@@ -161,7 +161,7 @@ function IndexScreen() {
         message: `Error picking document: ${e}.`,
       });
     }
-  };
+  }
 
   function onChangeRetention(text: string) {
     if (text === "" || /^[1-9]\d*$/.test(text)) {
@@ -196,9 +196,9 @@ function IndexScreen() {
         data={files}
         onItemPress={(item) => router.navigate(`/${item.id}`)}
       />
-      <ThemedButton style={styles.fab} onPress={onUploadButtonPress}>
+      <Fab onPress={onUploadButtonPress}>
         <MaterialIcons name="add" size={24} />
-      </ThemedButton>
+      </Fab>
 
       <Modal
         visible={showFileUploadDialog}
@@ -253,16 +253,6 @@ function IndexScreen() {
 
 const styles = StyleSheet.create({
   container: {},
-
-  fab: {
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    position: "absolute",
-    bottom: 16,
-    right: 16,
-    borderRadius: "50%",
-    elevation: 8,
-  },
 
   fileUploadDialog: {
     gap: 16,

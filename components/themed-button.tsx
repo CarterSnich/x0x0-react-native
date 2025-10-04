@@ -49,4 +49,4 @@ const buttonStyle: StyleProp<ViewStyle> = {
   borderRadius: 8,
 };
 
-export { ThemedButton };
+export { Props, ThemedButton };
