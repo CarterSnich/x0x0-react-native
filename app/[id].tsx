@@ -25,12 +25,26 @@ function UploadScreen() {
 
   async function deletFile() {
     if (!file) return;
+    alertShow({
+      title: "File deletion",
+      message: `Deleting ${file.name}.`,
+      buttons: [],
+    });
 
     try {
       await destroy(file.url, file.token);
       await AsyncStorage.removeItem(file.id);
-      ToastAndroid.show(`${file.name} deleted.`, ToastAndroid.SHORT);
-      router.back();
+
+      alertShow({
+        title: "File deletion",
+        message: `${file.name} deleted successfully.`,
+        buttons: [
+          {
+            label: "Okay",
+            action: router.back,
+          },
+        ],
+      });
     } catch (e: any) {
       Alert.alert("Delete file error", e);
     }
@@ -38,7 +52,7 @@ function UploadScreen() {
 
   function onPressDelete() {
     alertShow({
-      title: "Delete file",
+      title: "File deletion",
       message: `Are you sure you want to delete "${file?.name}"?`,
       buttons: [
         {

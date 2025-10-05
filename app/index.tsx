@@ -1,4 +1,4 @@
-import { StyleSheet, ToastAndroid, View } from "react-native";
+import { StyleSheet, View } from "react-native";
 
 import { Fab } from "@/components/fab";
 import { ThemedFlatList } from "@/components/flatlist";
@@ -67,6 +67,11 @@ function IndexScreen() {
       });
       return;
     }
+    alertShow({
+      title: `File upload`,
+      message: `Uploading ${pickedFile.name}.`,
+      buttons: [],
+    });
 
     try {
       const fileName = pickedFile.name;
@@ -74,7 +79,6 @@ function IndexScreen() {
       const fileSize = pickedFile.size ?? 0;
       const fileURI = pickedFile.uri;
 
-      ToastAndroid.show(`Uploading ${fileName}.`, ToastAndroid.SHORT);
       const { url, token, expires } = await upload(
         fileName,
         fileType,
@@ -100,7 +104,10 @@ function IndexScreen() {
 
       await AsyncStorage.setItem(id, JSON.stringify(file));
       setFiles([...files, file]);
-      ToastAndroid.show(`${pickedFile.name} uploaded.`, ToastAndroid.SHORT);
+      alertShow({
+        title: "File upload",
+        message: `${pickedFile.name} uploaded successfully.`,
+      });
     } catch (e: any) {
       console.error(e);
       alertShow({
@@ -171,14 +178,14 @@ function IndexScreen() {
 
   const modalActions = [
     {
-      label: "UPLOAD",
+      label: "Upload",
       action: async () => {
         setShowFileUploadDialog(false);
         uploadFile();
       },
     },
     {
-      label: "CANCEL",
+      label: "Cancel",
       action: () => setShowFileUploadDialog(false),
     },
   ];
@@ -209,19 +216,19 @@ function IndexScreen() {
           <View style={styles.fileProperties}>
             <ThemedText style={styles.optionsTitle}>File properties</ThemedText>
             <View style={styles.filePropRow}>
-              <ThemedText>File: </ThemedText>
+              <ThemedText style={styles.filePropLabel}>File: </ThemedText>
               <ThemedText style={styles.filePropValue}>
                 {pickedFile?.name}
               </ThemedText>
             </View>
             <View style={styles.filePropRow}>
-              <ThemedText>Size: </ThemedText>
+              <ThemedText style={styles.filePropLabel}>Size: </ThemedText>
               <ThemedText style={styles.filePropValue}>
                 {prettyBytes(pickedFile?.size ?? 0)}
               </ThemedText>
             </View>
             <View style={styles.filePropRow}>
-              <ThemedText>Type: </ThemedText>
+              <ThemedText style={styles.filePropLabel}>Type: </ThemedText>
               <ThemedText style={styles.filePropValue}>
                 {pickedFile?.mimeType}
               </ThemedText>
@@ -262,6 +269,9 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   filePropRow: { flexDirection: "row", gap: 4 },
+  filePropLabel: {
+    paddingVertical: 4,
+  },
   filePropValue: {
     fontFamily: "monospace",
     backgroundColor: "black",
