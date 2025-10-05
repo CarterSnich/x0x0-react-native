@@ -13,6 +13,7 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const headerTitle = applicationName ?? "";
 
   return (
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
@@ -25,12 +26,12 @@ export default function RootLayout() {
           <Stack.Screen
             name="index"
             options={{
-              title: applicationName ?? "",
+              title: headerTitle,
             }}
           />
         </Stack>
-        <StatusBar style="auto" />
       </AlertProvider>
+      <StatusBar style="auto" />
     </ThemeProvider>
   );
 }
