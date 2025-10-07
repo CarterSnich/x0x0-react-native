@@ -41,7 +41,10 @@ function UploadScreen() {
         buttons: [
           {
             label: "Okay",
-            action: router.back,
+            action() {
+              alertClose();
+              router.back();
+            },
           },
         ],
       });
@@ -58,9 +61,7 @@ function UploadScreen() {
         {
           label: "Confirm",
           action: async () => {
-            alertClose();
             await deletFile();
-            ToastAndroid.show(`${file?.name} deleted.`, ToastAndroid.SHORT);
           },
         },
         {
