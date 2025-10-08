@@ -29,7 +29,7 @@ function ThemedButton({ ...props }: Props) {
     <Pressable
       {...props}
       style={[buttonStyle, { backgroundColor: buttonColor }, props.style]}
-      android_ripple={{ color: textColor }}
+      android_ripple={{ color: textColor, foreground: true }}
     >
       <ThemedText
         style={{
