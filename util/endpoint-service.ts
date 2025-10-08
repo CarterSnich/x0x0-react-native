@@ -1,49 +1,62 @@
-const URL_ENDPOINT = "https://0x0.st/";
-const USER_AGENT = "x0x0/0.0.1 (Android;RN Expo)";
+import * as Application from "expo-application";
+import {
+  createUploadTask as cut,
+  FileSystemNetworkTaskProgressCallback,
+  FileSystemUploadResult,
+  FileSystemUploadType,
+  UploadProgressData,
+} from "expo-file-system/legacy";
 
-async function upload(
-  name: string,
-  type: string,
+const URL_ENDPOINT = "https://0x0.st/";
+const USER_AGENT = `x0x0/${Application.nativeApplicationVersion} (Android;RN Expo)`;
+
+function createUploadTask(
   uri: string,
   secret: boolean = false,
-  retention?: number
+  retention?: number,
+  callback?: FileSystemNetworkTaskProgressCallback<UploadProgressData>
 ) {
-  const formData = new FormData();
-  const formFile = { name, type, uri };
-  formData.append("file", formFile as any);
+  const parameters: Record<string, string> = {};
   if (secret) {
-    formData.append("secret", "");
+    parameters["secret"] = "";
   }
-  if (retention !== undefined) {
-    formData.append("expires", retention.toString());
+  if (retention) {
+    parameters["expires"] = retention.toString();
   }
 
-  const response = await fetch(URL_ENDPOINT, {
-    headers: {
-      "User-Agent": USER_AGENT,
-      "Content-Type": "multipart/form-data",
+  return cut(
+    URL_ENDPOINT,
+    uri,
+    {
+      httpMethod: "POST",
+      headers: {
+        "User-Agent": USER_AGENT,
+        "Content-Type": "multipart/form-data",
+      },
+      uploadType: FileSystemUploadType.MULTIPART,
+      fieldName: "file",
+      parameters: parameters,
     },
-    method: "POST",
-    body: formData,
-  });
-  const responseText = (await response.text()).trim();
+    callback
+  );
+}
 
-  if (!response.ok) {
-    throw `Upload failed: ${response.status} - ${responseText}`;
+function handleUploadTask(result: undefined | null | FileSystemUploadResult) {
+  if (result === null || result === undefined) {
+    throw "Upload cancelled.";
   }
 
-  const token = response.headers.get("x-token");
-  const expires = response.headers.get("x-expires") ?? "";
+  const body = result.body.trim();
 
-  if (token === null) {
-    throw `File already exist remotely: ${responseText}`;
+  if (result.status < 200 || result.status >= 300) {
+    throw `Failed to upload. ${body}`;
   }
 
-  return {
-    url: responseText,
-    token,
-    expires,
-  };
+  const url = body;
+  const token = result.headers["X-Token"] ?? "";
+  const expires = result.headers["X-Expires"] ?? "";
+
+  return { url, token, expires };
 }
 
 async function destroy(url: string, token: string) {
@@ -65,4 +78,4 @@ async function destroy(url: string, token: string) {
   return responseText;
 }
 
-export { destroy, upload };
+export { createUploadTask, destroy, handleUploadTask };
