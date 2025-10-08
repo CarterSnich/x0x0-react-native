@@ -8,13 +8,14 @@ import ThemedBase from "@/components/themed-base";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedTextInput } from "@/components/themed-text-input";
 import { useAlert } from "@/contexts/alert-context";
-import { upload } from "@/util/endpoint-service";
+import { createUploadTask, handleUploadTask } from "@/util/endpoint-service";
 import { File } from "@/util/file";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
 import { DocumentPickerAsset, getDocumentAsync } from "expo-document-picker";
-import { useFocusEffect, useNavigation, useRouter } from "expo-router";
+import { UploadTask } from "expo-file-system/legacy";
+import { useFocusEffect, useRouter } from "expo-router";
 import prettyBytes from "pretty-bytes";
 import { useCallback, useState } from "react";
 
@@ -22,15 +23,17 @@ function IndexScreen() {
   const { alertShow } = useAlert();
 
   const router = useRouter();
-  const navigation = useNavigation();
 
   const [files, setFiles] = useState<File[]>([]);
+
+  const [uploadTask, setUploadTask] = useState<UploadTask>();
+  const [progressPercentage, setProgressPercentege] = useState(0);
 
   const [showFileUploadDialog, setShowFileUploadDialog] = useState(false);
 
   const [pickedFile, setPickedFile] = useState<DocumentPickerAsset>();
   const [isSecret, setIsSecret] = useState(false);
-  const [retention, setRetention] = useState("");
+  const [retention, setRetention] = useState<number>();
 
   async function getFiles() {
     try {
@@ -53,39 +56,49 @@ function IndexScreen() {
   }
 
   function resetFileUploadDialog() {
-    setRetention("");
-    setIsSecret(false);
+    setUploadTask(undefined);
+    setProgressPercentege(0);
+
     setPickedFile(undefined);
     setShowFileUploadDialog(false);
+
+    setRetention(undefined);
+    setIsSecret(false);
   }
 
   async function uploadFile() {
     if (!pickedFile) {
       alertShow({
-        title: "File picker",
+        title: "File upload",
         message: "No file selected.",
       });
       return;
     }
-    alertShow({
-      title: `File upload`,
-      message: `Uploading ${pickedFile.name}.`,
-      buttons: [],
-    });
 
     try {
-      const fileName = pickedFile.name;
-      const fileType = pickedFile.mimeType ?? "*/*";
-      const fileSize = pickedFile.size ?? 0;
-      const fileURI = pickedFile.uri;
-
-      const { url, token, expires } = await upload(
-        fileName,
-        fileType,
-        fileURI,
+      const task = createUploadTask(
+        pickedFile.uri,
         isSecret,
-        retention ? Number(retention) : undefined
+        retention,
+        ({ totalBytesSent: sent, totalBytesExpectedToSend: total }) => {
+          const percent = Math.round((sent / total) * 100);
+          setProgressPercentege((_) => percent);
+        }
       );
+
+      setUploadTask((_) => task);
+      const { url, token, expires } = handleUploadTask(
+        await task.uploadAsync()
+      );
+
+      if (!token.length) {
+        alertShow({
+          title: "File upload",
+          message: `File already exists. ${url}`,
+        });
+        return;
+      }
+
       const id = await Crypto.digestStringAsync(
         Crypto.CryptoDigestAlgorithm.MD5,
         pickedFile.name
@@ -93,10 +106,10 @@ function IndexScreen() {
 
       const file: File = {
         id: id,
-        name: fileName,
-        size: fileSize,
-        mimeType: fileType,
-        uri: fileURI,
+        name: pickedFile.name,
+        size: pickedFile.size ?? 0,
+        mimeType: pickedFile.mimeType ?? "*/*",
+        uri: pickedFile.uri,
         url: url,
         token: token,
         expires: expires,
@@ -104,15 +117,16 @@ function IndexScreen() {
 
       await AsyncStorage.setItem(id, JSON.stringify(file));
       setFiles([...files, file]);
+
       alertShow({
         title: "File upload",
         message: `${pickedFile.name} uploaded successfully.`,
       });
     } catch (e: any) {
-      console.error(e);
+      console.error("File upload error", e);
       alertShow({
         title: "File upload error",
-        message: e,
+        message: `${e}`,
       });
     } finally {
       resetFileUploadDialog();
@@ -122,24 +136,23 @@ function IndexScreen() {
   async function onUploadButtonPress() {
     try {
       let result = await getDocumentAsync({
-        copyToCacheDirectory: true,
         multiple: false,
+        type: "*/*",
       });
 
       if (result.canceled) {
         return;
       }
 
-      const resultFile = result.assets[0];
-
-      if (!resultFile) {
-        resetFileUploadDialog();
+      if (result === null || !result.assets) {
         alertShow({
           title: "File picker",
-          message: "File seems to be corrupted or something else went wrong.",
+          message: "No file selected. Something went wrong.",
         });
         return;
       }
+
+      const resultFile = result.assets[0];
 
       if (!resultFile.size) {
         resetFileUploadDialog();
@@ -150,6 +163,7 @@ function IndexScreen() {
         return;
       }
 
+      // magic number detected
       if (resultFile.size > 536870912) {
         resetFileUploadDialog();
         alertShow({
@@ -172,7 +186,7 @@ function IndexScreen() {
 
   function onChangeRetention(text: string) {
     if (text === "" || /^[1-9]\d*$/.test(text)) {
-      setRetention(text);
+      setRetention(Number(text));
     }
   }
 
@@ -247,12 +261,29 @@ function IndexScreen() {
               <ThemedTextInput
                 style={styles.optionsRetention}
                 keyboardType="numeric"
-                value={retention}
+                value={retention?.toString()}
                 onChangeText={onChangeRetention}
               />
             </View>
           </View>
         </View>
+      </Modal>
+
+      <Modal
+        visible={uploadTask !== undefined}
+        title="File upload"
+        actions={[
+          {
+            label: "Cancel",
+            action: async () => {
+              if (uploadTask !== undefined) {
+                await uploadTask.cancelAsync();
+              }
+            },
+          },
+        ]}
+      >
+        <ThemedText>Uploading {progressPercentage}%</ThemedText>
       </Modal>
     </ThemedBase>
   );
