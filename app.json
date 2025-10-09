@@ -3,6 +3,7 @@
     "name": "x0x0",
     "slug": "x0x0",
     "version": "0.0.2",
+    "githubUrl": "https://github.com/CarterSnich/x0x0-react-native",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "x0x0",

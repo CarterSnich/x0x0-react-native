@@ -1,6 +1,12 @@
 import { Colors } from "@/constants/theme";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { Pressable, PressableProps, StyleProp, ViewStyle } from "react-native";
+import {
+  Pressable,
+  PressableProps,
+  StyleProp,
+  StyleSheet,
+  ViewStyle,
+} from "react-native";
 import { ThemedText } from "./themed-text";
 
 type Props = PressableProps & {
@@ -28,14 +34,14 @@ function ThemedButton({ ...props }: Props) {
   return (
     <Pressable
       {...props}
-      style={[buttonStyle, { backgroundColor: buttonColor }, props.style]}
+      style={[styles.button, { backgroundColor: buttonColor }, props.style]}
       android_ripple={{ color: textColor, foreground: true }}
     >
       <ThemedText
-        style={{
-          color: props.disabled ? disabledTextColor : textColor,
-          textAlign: "center",
-        }}
+        style={[
+          styles.text,
+          { color: props.disabled ? disabledTextColor : textColor },
+        ]}
       >
         {props.children}
       </ThemedText>
@@ -43,10 +49,15 @@ function ThemedButton({ ...props }: Props) {
   );
 }
 
-const buttonStyle: StyleProp<ViewStyle> = {
-  paddingHorizontal: 16,
-  paddingVertical: 12,
-  borderRadius: 8,
-};
+const styles = StyleSheet.create({
+  button: {
+    borderRadius: 8,
+  },
+  text: {
+    textAlign: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
+});
 
 export { Props, ThemedButton };

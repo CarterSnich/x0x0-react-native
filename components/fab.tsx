@@ -2,11 +2,13 @@ import { Props, ThemedButton } from "@/components/themed-button";
 import { StyleProp, ViewStyle } from "react-native";
 
 const style: StyleProp<ViewStyle> = {
-  paddingHorizontal: 20,
-  paddingVertical: 20,
   position: "absolute",
-  bottom: 16,
-  right: 16,
+  bottom: 24,
+  right: 24,
+  height: 76,
+  aspectRatio: 1,
+  justifyContent: "center",
+  alignItems: "center",
   borderRadius: "50%",
   elevation: 8,
 };
