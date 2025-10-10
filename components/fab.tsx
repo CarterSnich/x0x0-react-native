@@ -5,7 +5,7 @@ const style: StyleProp<ViewStyle> = {
   position: "absolute",
   bottom: 24,
   right: 24,
-  height: 76,
+  height: 64,
   aspectRatio: 1,
   justifyContent: "center",
   alignItems: "center",
