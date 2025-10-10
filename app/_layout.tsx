@@ -49,6 +49,12 @@ export default function RootLayout() {
               },
             }}
           />
+          <Stack.Screen
+            name="about"
+            options={{
+              title: "About",
+            }}
+          />
         </Stack>
       </AlertProvider>
       <StatusBar style="auto" />
