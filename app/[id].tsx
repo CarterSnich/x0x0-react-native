@@ -87,6 +87,15 @@ function UploadScreen() {
     }
   }
 
+  async function copyToClipboard(toastMessage: string, text?: string) {
+    if (!text) {
+      ToastAndroid.show("Nothing to copy.", ToastAndroid.SHORT);
+      return;
+    }
+    await Clipboard.setStringAsync(text);
+    ToastAndroid.show(toastMessage, ToastAndroid.SHORT);
+  }
+
   useEffect(() => {
     (async () => {
       const item = await AsyncStorage.getItem(id);
@@ -159,10 +168,9 @@ function UploadScreen() {
           <ThemedText
             style={styles.propertyValue}
             type="link"
-            onPress={async () => {
-              await Clipboard.setStringAsync(`${file?.url}`);
-              ToastAndroid.show("URL copied to clipboard.", ToastAndroid.SHORT);
-            }}
+            onPress={() =>
+              copyToClipboard("URL copied to clipboard.", file?.url)
+            }
           >
             {file?.url}
           </ThemedText>
@@ -182,13 +190,9 @@ function UploadScreen() {
           <ThemedText
             style={styles.propertyValue}
             type="link"
-            onPress={async () => {
-              await Clipboard.setStringAsync(`${file?.token}`);
-              ToastAndroid.show(
-                "Token copied to clipboard.",
-                ToastAndroid.SHORT
-              );
-            }}
+            onPress={() =>
+              copyToClipboard("Token copied to clipboard.", file?.token)
+            }
           >
             {file?.token}
           </ThemedText>
