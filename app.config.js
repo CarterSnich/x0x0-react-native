@@ -1,19 +1,17 @@
 export default ({ config }) => {
   let appName = "x0x0";
-  let slug = "x0x0";
   let scheme = "x0x0";
   let packageName = "com.cartersnich.x0x0";
 
   if (process.env.NODE_ENV === "development") {
     appName = "x0x0 DEV";
-    slug = "x0x0-dev";
-    scheme = "x0x0";
+    scheme = "x0x0-dev";
     packageName = "com.cartersnich.x0x0.dev";
   }
 
   return {
     name: appName,
-    slug: slug,
+    slug: "x0x0",
     version: "0.0.2",
     githubUrl: "https://github.com/CarterSnich/x0x0-react-native",
     orientation: "portrait",
