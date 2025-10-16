@@ -2,16 +2,15 @@ import { File } from "@/util/file";
 import { Image } from "expo-image";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { useEffect, useLayoutEffect, useState } from "react";
-import { Alert, Share, StyleSheet, ToastAndroid, View } from "react-native";
+import { Alert, Share, StyleSheet, View } from "react-native";
 
 import { ThemedButton } from "@/components/themed-button";
 import { ThemedText } from "@/components/themed-text";
 import { useAlert } from "@/contexts/alert-context";
 import { destroy } from "@/util/endpoint-service";
+import { copyToClipboard, formatDate } from "@/util/utils";
 import { FontAwesome5 } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Clipboard from "expo-clipboard";
-import * as FileSystem from "expo-file-system/legacy";
 import prettyBytes from "pretty-bytes";
 
 function UploadScreen() {
@@ -87,44 +86,38 @@ function UploadScreen() {
     }
   }
 
-  async function copyToClipboard(toastMessage: string, text?: string) {
-    if (!text) {
-      ToastAndroid.show("Nothing to copy.", ToastAndroid.SHORT);
-      return;
-    }
-    await Clipboard.setStringAsync(text);
-    ToastAndroid.show(toastMessage, ToastAndroid.SHORT);
-  }
-
   useEffect(() => {
     (async () => {
-      const item = await AsyncStorage.getItem(id);
-      if (item) {
+      try {
+        const item = await AsyncStorage.getItem(id);
+
+        if (!item) {
+          alertShow({
+            title: "View file",
+            message: "Unknown file.",
+          });
+          router.back();
+          return;
+        }
+
         const retrievedFile: File = JSON.parse(item);
-        const info = await FileSystem.getInfoAsync(retrievedFile.uri);
+        const expiry = new Date(Number(retrievedFile.expires));
 
-        if (!info.exists) {
-          try {
-            await FileSystem.downloadAsync(
-              new URL(`${retrievedFile.url}`).href,
-              retrievedFile.uri
-            );
-          } catch (e) {
-            console.error(e);
-
-            alertShow({
-              title: "File retrieve error",
-              message: "Failed to download from remote.",
-            });
-            router.back();
-          }
+        if (Date.now() >= expiry.getTime()) {
+          alertShow({
+            title: "File deleted",
+            message: "File already expired.",
+          });
+          router.back();
+          return;
         }
 
         setFile(retrievedFile);
-      } else {
+      } catch (e: any) {
+        console.error(e);
         alertShow({
-          title: "View file error",
-          message: "File doesn't exist.",
+          title: "File retrieve error",
+          message: "Failed to download from remote.",
         });
         router.back();
       }
@@ -132,10 +125,21 @@ function UploadScreen() {
   }, []);
 
   useLayoutEffect(() => {
-    navigation.setOptions({
-      title: file?.name,
-    });
+    if (file) {
+      navigation.setOptions({
+        title: file.name,
+        headerShown: true,
+      });
+    }
   }, [file]);
+
+  if (!file) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ThemedText style={styles.loadingLabel}>Loading...</ThemedText>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -148,9 +152,9 @@ function UploadScreen() {
             style={styles.image}
             onError={(event) => Alert.alert("Image", event.error)}
           />
-        ) : file?.mimeType?.includes("video") ? (
+        ) : file.mimeType.includes("video") ? (
           <FontAwesome5 name="file-video" size={64} color="white" />
-        ) : file?.mimeType?.includes("pdf") ? (
+        ) : file.mimeType.includes("pdf") ? (
           <FontAwesome5 name="file-pdf" size={64} color="white" />
         ) : (
           <FontAwesome5 name="file" size={64} color="white" />
@@ -161,16 +165,16 @@ function UploadScreen() {
       <View style={styles.properties}>
         <View style={styles.propertyRow}>
           <ThemedText style={styles.propertyLabel}>File name</ThemedText>
-          <ThemedText style={styles.propertyValue}>{file?.name}</ThemedText>
+          <ThemedText style={styles.propertyValue}>{file.name}</ThemedText>
         </View>
         <View style={styles.propertyRow}>
           <ThemedText style={styles.propertyLabel}>URL</ThemedText>
           <ThemedText
             style={styles.propertyValue}
             type="link"
-            onPress={() =>
-              copyToClipboard("URL copied to clipboard.", file?.url)
-            }
+            onPress={() => {
+              copyToClipboard("URL copied to clipboard.", file.url);
+            }}
           >
             {file?.url}
           </ThemedText>
@@ -190,9 +194,9 @@ function UploadScreen() {
           <ThemedText
             style={styles.propertyValue}
             type="link"
-            onPress={() =>
-              copyToClipboard("Token copied to clipboard.", file?.token)
-            }
+            onPress={() => {
+              copyToClipboard("Token copied to clipboard.", file.token);
+            }}
           >
             {file?.token}
           </ThemedText>
@@ -200,15 +204,7 @@ function UploadScreen() {
         <View style={styles.propertyRow}>
           <ThemedText style={styles.propertyLabel}>Expires</ThemedText>
           <ThemedText style={styles.propertyValue}>
-            {new Date(Number(file?.expires)).toLocaleString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-              hour12: false,
-            })}
+            {formatDate(new Date(Number(file?.expires)))}
           </ThemedText>
         </View>
         <View style={styles.propertyRow}>
@@ -236,6 +232,15 @@ const styles = StyleSheet.create({
     padding: 16,
     flexDirection: "column",
     gap: 16,
+  },
+
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingLabel: {
+    fontSize: 24,
   },
 
   preview: {

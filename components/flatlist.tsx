@@ -23,7 +23,7 @@ function ThemedFlatList({ data, onItemPress }: Props) {
         <Pressable
           key={index}
           style={styles.item}
-          android_ripple={{ color: rippleColor }}
+          android_ripple={{ color: rippleColor, foreground: true }}
           onPress={() => onItemPress?.(item, index)}
         >
           <ThemedText>{item.name}</ThemedText>

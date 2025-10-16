@@ -10,6 +10,7 @@ import { ThemedTextInput } from "@/components/themed-text-input";
 import { useAlert } from "@/contexts/alert-context";
 import { createUploadTask, handleUploadTask } from "@/util/endpoint-service";
 import { File } from "@/util/file";
+import { copyToClipboard, formatDate } from "@/util/utils";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Crypto from "expo-crypto";
@@ -17,7 +18,8 @@ import { DocumentPickerAsset, getDocumentAsync } from "expo-document-picker";
 import { UploadTask } from "expo-file-system/legacy";
 import { useFocusEffect, useRouter } from "expo-router";
 import prettyBytes from "pretty-bytes";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import RNBlobUtil from "react-native-blob-util";
 
 function IndexScreen() {
   const { alertShow } = useAlert();
@@ -30,6 +32,7 @@ function IndexScreen() {
   const [progressPercentage, setProgressPercentege] = useState(0);
 
   const [showFileUploadDialog, setShowFileUploadDialog] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File>();
 
   const [pickedFile, setPickedFile] = useState<DocumentPickerAsset>();
   const [isSecret, setIsSecret] = useState(false);
@@ -55,7 +58,7 @@ function IndexScreen() {
     }
   }
 
-  function resetFileUploadDialog() {
+  function resetFileUpload() {
     setUploadTask(undefined);
     setProgressPercentege(0);
 
@@ -129,7 +132,7 @@ function IndexScreen() {
         message: `${e}`,
       });
     } finally {
-      resetFileUploadDialog();
+      resetFileUpload();
     }
   }
 
@@ -155,7 +158,7 @@ function IndexScreen() {
       const resultFile = result.assets[0];
 
       if (!resultFile.size) {
-        resetFileUploadDialog();
+        resetFileUpload();
         alertShow({
           title: "File picker",
           message: "Empty file.",
@@ -165,7 +168,7 @@ function IndexScreen() {
 
       // magic number detected
       if (resultFile.size > 536870912) {
-        resetFileUploadDialog();
+        resetFileUpload();
         alertShow({
           title: "File size",
           message: "File size must not exceed 512 MiB.",
@@ -190,6 +193,28 @@ function IndexScreen() {
     }
   }
 
+  async function downloadFile(file: File) {
+    try {
+      const blob = RNBlobUtil.config({
+        addAndroidDownloads: {
+          useDownloadManager: true,
+          notification: true,
+          mime: file.mimeType,
+          description: `Downloading ${file.name}`,
+          path: `${RNBlobUtil.fs.dirs.DownloadDir}/${file.name}`,
+        },
+      });
+      const result = await blob.fetch("GET", file.url);
+      return result.path();
+    } catch (e: any) {
+      console.error(`Failed to download: ${file.name}`, e);
+      alertShow({
+        title: "File download",
+        message: `Failed to download: ${file.name}`,
+      });
+    }
+  }
+
   const modalActions = [
     {
       label: "Upload",
@@ -204,6 +229,8 @@ function IndexScreen() {
     },
   ];
 
+  useEffect(() => {}, []);
+
   useFocusEffect(
     useCallback(() => {
       getFiles();
@@ -215,10 +242,12 @@ function IndexScreen() {
     <ThemedBase style={styles.container}>
       <ThemedFlatList
         data={files}
-        onItemPress={(item) => router.navigate(`/${item.id}`)}
+        onItemPress={(item) => {
+          setSelectedFile(item);
+        }}
       />
       <Fab onPress={onUploadButtonPress}>
-        <MaterialIcons name="add" size={24} />
+        <MaterialIcons name="cloud-upload" size={24} />
       </Fab>
 
       <Modal
@@ -285,6 +314,81 @@ function IndexScreen() {
       >
         <ThemedText>Uploading {progressPercentage}%</ThemedText>
       </Modal>
+
+      {/* File options */}
+      <Modal
+        title={selectedFile?.name}
+        visible={selectedFile !== undefined}
+        actions={[
+          {
+            label: "Download",
+            action: async () => {
+              if (selectedFile) {
+                const path = await downloadFile(selectedFile);
+                setSelectedFile(undefined);
+                alertShow({
+                  title: "File download",
+                  message: `File downloaded to: ${path}`,
+                });
+              }
+            },
+          },
+          {
+            label: "Close",
+            action() {
+              setSelectedFile(undefined);
+            },
+          },
+        ]}
+      >
+        <View style={styles.fileProperties}>
+          <View style={styles.filePropRow}>
+            <ThemedText style={styles.filePropLabel}>Size </ThemedText>
+            <ThemedText style={styles.filePropValue}>
+              {prettyBytes(selectedFile?.size ?? 0)}
+            </ThemedText>
+          </View>
+          <View style={styles.filePropRow}>
+            <ThemedText style={styles.filePropLabel}>Type </ThemedText>
+            <ThemedText style={styles.filePropValue}>
+              {selectedFile?.mimeType}
+            </ThemedText>
+          </View>
+          <View style={styles.filePropRow}>
+            <ThemedText style={styles.filePropLabel}>URL </ThemedText>
+            <ThemedText
+              type="link"
+              style={styles.filePropValue}
+              onPress={() =>
+                copyToClipboard("URL copied to clipboard.", selectedFile?.url)
+              }
+            >
+              {selectedFile?.url}
+            </ThemedText>
+          </View>
+          <View style={styles.filePropRow}>
+            <ThemedText style={styles.filePropLabel}>Token </ThemedText>
+            <ThemedText
+              type="link"
+              style={styles.filePropValue}
+              onPress={() =>
+                copyToClipboard(
+                  "Token copied to clipboard.",
+                  selectedFile?.token
+                )
+              }
+            >
+              {selectedFile?.token}
+            </ThemedText>
+          </View>
+          <View style={styles.filePropRow}>
+            <ThemedText style={styles.filePropLabel}>Expires on </ThemedText>
+            <ThemedText style={styles.filePropValue}>
+              {formatDate(new Date(Number(selectedFile?.expires)))}
+            </ThemedText>
+          </View>
+        </View>
+      </Modal>
     </ThemedBase>
   );
 }
@@ -301,13 +405,9 @@ const styles = StyleSheet.create({
   },
   filePropRow: { flexDirection: "row", gap: 4 },
   filePropLabel: {
-    paddingVertical: 4,
+    width: 80,
   },
   filePropValue: {
-    fontFamily: "monospace",
-    backgroundColor: "black",
-    padding: 4,
-    borderRadius: 4,
     flexShrink: 1,
   },
 

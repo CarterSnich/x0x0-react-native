@@ -50,6 +50,12 @@ export default function RootLayout() {
             }}
           />
           <Stack.Screen
+            name="[id]"
+            options={{
+              headerShown: false,
+            }}
+          />
+          <Stack.Screen
             name="about"
             options={{
               title: "About",
